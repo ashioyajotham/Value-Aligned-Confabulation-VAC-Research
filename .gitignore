@@ -27,8 +27,6 @@ test_output/
 data/
 # Ignore configuration files
 config.yaml
-# Ignore documentation files
-docs/
 # Ignore temporary files
 *.tmp
 # Ignore backup files
