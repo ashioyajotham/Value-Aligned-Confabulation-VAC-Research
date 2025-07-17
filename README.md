@@ -92,9 +92,9 @@ This project follows ethical guidelines for human subjects research and AI safet
 This research builds upon important insights from the AI research community:
 
 ### Terminology
-- **Geoffrey Hinton** has advocated for using "confabulation" rather than "hallucination" when describing AI-generated content that isn't grounded in training data, emphasizing that the term better captures the nature of how language models generate responses.
+- **Geoffrey Hinton** has advocated for using "confabulation" rather than "hallucination" when describing AI-generated content that isn't grounded in training data, emphasizing that the term better captures the nature of how language models generate responses. See his discussion in the [60 Minutes interview](https://www.youtube.com/watch?v=qrvK_KuIeJk) and the [full interview](https://www.youtube.com/watch?v=qyH3NxFz3Aw).
 
-- **Andrej Karpathy** has discussed the nuanced nature of what we call "hallucinations" in language models, noting that not all factually ungrounded outputs are equally problematic - a key insight that motivates this research.
+- **Andrej Karpathy** has discussed the nuanced nature of what we call "hallucinations" in language models, noting that not all factually ungrounded outputs are equally problematic - a key insight that motivates this research. His thoughts on this topic have been shared in various [Twitter/X discussions](https://x.com/karpathy/status/1733299213503787018).
 
 ### Foundational Work
 - This research was originally conceptualized in "[Hallucinations in Large Language Models](https://ashioyajotham.substack.com/p/hallucinations-in-large-language)" (Ashioya, 2024), which explored the need for more nuanced evaluation of AI-generated content.
