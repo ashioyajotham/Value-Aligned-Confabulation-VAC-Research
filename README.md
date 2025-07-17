@@ -87,6 +87,21 @@ Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on
 ### Research Ethics
 This project follows ethical guidelines for human subjects research and AI safety. All contributions should consider potential societal impacts and promote beneficial uses of confabulation research.
 
+## Acknowledgements
+
+This research builds upon important insights from the AI research community:
+
+### Terminology
+- **Geoffrey Hinton** has advocated for using "confabulation" rather than "hallucination" when describing AI-generated content that isn't grounded in training data, emphasizing that the term better captures the nature of how language models generate responses.
+
+- **Andrej Karpathy** has discussed the nuanced nature of what we call "hallucinations" in language models, noting that not all factually ungrounded outputs are equally problematic - a key insight that motivates this research.
+
+### Foundational Work
+- This research was originally conceptualized in "[Hallucinations in Large Language Models](https://ashioyajotham.substack.com/p/hallucinations-in-large-language)" (Ashioya, 2024), which explored the need for more nuanced evaluation of AI-generated content.
+
+### Research Community
+We acknowledge the broader AI safety and alignment research community, whose ongoing work on AI evaluation, human preference modeling, and value alignment provides the foundation for this research.
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
