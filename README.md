@@ -89,7 +89,7 @@ This project follows ethical guidelines for human subjects research and AI safet
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ## Citation
 
