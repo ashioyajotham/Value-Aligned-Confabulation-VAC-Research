@@ -74,12 +74,18 @@ score = evaluator.evaluate_response(prompt, response, context)
 
 ## Contributing
 
-This is a research project focused on advancing our understanding of beneficial AI confabulation. Contributions are welcome in the form of:
+This is a research project focused on advancing our understanding of beneficial AI confabulation. We welcome contributions from researchers, developers, and AI safety practitioners.
 
-- New evaluation metrics
-- Additional benchmark scenarios
-- Human study protocols
-- Analysis tools
+### Ways to Contribute
+- **Research**: New evaluation metrics, benchmark scenarios, human study protocols
+- **Technical**: Code improvements, integrations, analysis tools
+- **Documentation**: Methodology improvements, examples, tutorials
+- **Community**: Cross-cultural validation, expert reviews, ethical guidelines
+
+Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on how to get involved.
+
+### Research Ethics
+This project follows ethical guidelines for human subjects research and AI safety. All contributions should consider potential societal impacts and promote beneficial uses of confabulation research.
 
 ## License
 
@@ -92,7 +98,7 @@ If you use this work in your research, please cite:
 ```bibtex
 @misc{vac_research_2025,
   title={Value-Aligned Confabulation: Moving Beyond Binary Truthfulness in LLM Evaluation},
-  author={VAC Research Team},
+  author={Ashioya Jotham Victor},
   year={2025},
   note={Research in progress}
 }
