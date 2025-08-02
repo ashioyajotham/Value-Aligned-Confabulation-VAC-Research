@@ -38,3 +38,7 @@ secrets.json
 # Ignore Docker files
 Dockerfile
 docker-compose.yml
+# Ignore Python package metadata
+*.egg-info/
+# Ignore Python distribution files
+*.dist-info/

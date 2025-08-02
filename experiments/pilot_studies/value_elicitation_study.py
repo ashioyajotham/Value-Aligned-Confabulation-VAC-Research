@@ -12,10 +12,16 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 import uuid
 
-from ..evaluation.benchmarks.medical_scenarios import MedicalScenarios
-from ..evaluation.benchmarks.creative_tasks import CreativeScenarios
-from ..evaluation.benchmarks.educational_content import EducationalScenarios
-from ..evaluation.vac_evaluator import Domain, EvaluationContext
+# Relative imports
+import sys
+from pathlib import Path
+project_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from src.evaluation.benchmarks.medical_scenarios import MedicalScenarios
+#from src.evaluation.benchmarks.creative_tasks import CreativeScenarios
+#from src.evaluation.benchmarks.educational_content import EducationalScenarios
+from src.evaluation.vac_evaluator import Domain, EvaluationContext
 
 
 @dataclass
