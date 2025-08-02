@@ -20,7 +20,7 @@ Traditional LLM evaluation treats all factually ungrounded outputs as equally pr
 
 ## Repository Structure
 
-```
+```text
 value-aligned-confabulation/
 ├── docs/                    # Research documentation
 ├── src/                     # Core implementation
@@ -53,21 +53,25 @@ score = evaluator.evaluate_response(prompt, response, context)
 ## Research Phases
 
 ### Phase 1: Foundation (Weeks 1-2)
+
 - Core evaluation framework
 - Initial benchmark scenarios
 - Basic metrics implementation
 
 ### Phase 2: Human Studies (Weeks 3-4)
+
 - Value elicitation study
 - Expert judgment collection
 - Baseline human preferences
 
 ### Phase 3: Model Evaluation (Weeks 5-6)
+
 - Baseline model evaluation
 - Cross-domain testing
 - Alignment-truthfulness trade-off analysis
 
 ### Phase 4: Analysis & Iteration (Weeks 7-8)
+
 - Statistical analysis
 - Metric refinement
 - Research publication preparation
@@ -77,6 +81,7 @@ score = evaluator.evaluate_response(prompt, response, context)
 This is a research project focused on advancing our understanding of beneficial AI confabulation. We welcome contributions from researchers, developers, and AI safety practitioners.
 
 ### Ways to Contribute
+
 - **Research**: New evaluation metrics, benchmark scenarios, human study protocols
 - **Technical**: Code improvements, integrations, analysis tools
 - **Documentation**: Methodology improvements, examples, tutorials
@@ -85,6 +90,7 @@ This is a research project focused on advancing our understanding of beneficial 
 Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on how to get involved.
 
 ### Research Ethics
+
 This project follows ethical guidelines for human subjects research and AI safety. All contributions should consider potential societal impacts and promote beneficial uses of confabulation research.
 
 ## Acknowledgements
@@ -92,14 +98,17 @@ This project follows ethical guidelines for human subjects research and AI safet
 This research builds upon important insights from the AI research community:
 
 ### Terminology
+
 - **Geoffrey Hinton** has advocated for using "confabulation" rather than "hallucination" when describing AI-generated content that isn't grounded in training data, emphasizing that the term better captures the nature of how language models generate responses. See his discussion in the [60 Minutes interview](https://www.youtube.com/watch?v=qrvK_KuIeJk) and the [full interview](https://www.youtube.com/watch?v=qyH3NxFz3Aw).
 
 - **Andrej Karpathy** has discussed the nuanced nature of what we call "hallucinations" in language models, noting that not all factually ungrounded outputs are equally problematic - a key insight that motivates this research. His thoughts on this topic have been shared in various [Twitter/X discussions](https://x.com/karpathy/status/1733299213503787018).
 
 ### Foundational Work
+
 - This research was originally conceptualized in "[Hallucinations in Large Language Models](https://ashioyajotham.substack.com/p/hallucinations-in-large-language)" (Ashioya, 2024), which explored the need for more nuanced evaluation of AI-generated content.
 
 ### Research Community
+
 We acknowledge the broader AI safety and alignment research community, whose ongoing work on AI evaluation, human preference modeling, and value alignment provides the foundation for this research.
 
 ## License
