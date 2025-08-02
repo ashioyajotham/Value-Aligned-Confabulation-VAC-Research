@@ -27,6 +27,7 @@ python tests/test_structure.py
 ```
 
 After installing dependencies:
+
 ```bash
 python tests/test_vac_framework.py
 ```
@@ -114,6 +115,7 @@ This implementation provides a complete framework for researching Value-Aligned 
 ## Research Impact
 
 This framework enables:
+
 - More nuanced LLM evaluation beyond binary truthfulness
 - Understanding when confabulation serves beneficial purposes
 - Development of more human-aligned AI systems
