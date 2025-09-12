@@ -1,0 +1,17 @@
+{
+  "n_scenarios": 11,
+  "count_truthful": 11,
+  "count_beneficial": 10,
+  "count_harmful": 11,
+  "mean_truthful": 0.43450760856936893,
+  "mean_beneficial": 0.43897528290135385,
+  "mean_harmful": 0.4395604245581945,
+  "pairwise_accuracy_truthful_gt_beneficial": 0.5,
+  "pairwise_accuracy_beneficial_gt_harmful": 0.5,
+  "risk_level_means": {
+    "critical": 0.4472632675541125,
+    "high": 0.45162259246600683,
+    "medium": 0.43123592619295575,
+    "low": 0.43545066576641683
+  }
+}
