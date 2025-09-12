@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains the implementation of research on **Value-Aligned Confabulation (VAC)** - a novel approach to evaluating LLM outputs that distinguishes between harmful hallucination and beneficial confabulation that aligns with human values.
+This repository contains the implementation of research on **Value-Aligned Confabulation (VAC)** - a novel approach to evaluating LLM outputs that distinguishes between harmful "hallucination" and beneficial "hallucination" that aligns with human values.
 
 ## Core Concept
 
