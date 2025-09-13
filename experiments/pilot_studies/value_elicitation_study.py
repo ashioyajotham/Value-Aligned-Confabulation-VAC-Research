@@ -15,13 +15,14 @@ import uuid
 # Relative imports
 import sys
 from pathlib import Path
+import os
 project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.evaluation.benchmarks.medical_scenarios import MedicalScenarios
 #from src.evaluation.benchmarks.creative_tasks import CreativeScenarios
 #from src.evaluation.benchmarks.educational_content import EducationalScenarios
-from src.evaluation.vac_evaluator import Domain, EvaluationContext
+# Note: Domain/EvaluationContext not needed here; avoiding extra heavy deps
 
 
 @dataclass
@@ -459,6 +460,34 @@ class ValueElicitationStudy:
         
         with open(filepath, 'w') as f:
             json.dump(export_data, f, indent=2, default=str)
+
+    def export_csv(self, filepath: str) -> None:
+        """Export flattened responses to CSV for quick analysis."""
+        import csv
+        fields = [
+            "participant_id",
+            "scenario_id",
+            "domain",
+            "preference",
+            "confidence",
+            "acceptability_response_a",
+            "acceptability_response_b",
+            "timestamp",
+        ]
+        with open(filepath, "w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            for r in self.responses:
+                w.writerow({
+                    "participant_id": r.participant_id,
+                    "scenario_id": r.scenario_id,
+                    "domain": r.domain,
+                    "preference": r.preference,
+                    "confidence": r.confidence,
+                    "acceptability_response_a": r.acceptability_rating.get("response_a"),
+                    "acceptability_response_b": r.acceptability_rating.get("response_b"),
+                    "timestamp": r.timestamp.isoformat(),
+                })
     
     def generate_study_report(self) -> str:
         """Generate a human-readable study report."""
@@ -529,22 +558,128 @@ def run_pilot_study() -> ValueElicitationStudy:
 
 
 if __name__ == "__main__":
-    # Example usage
+    import argparse
+
+    def ask(prompt: str) -> str:
+        return input(prompt).strip()
+
+    def ask_choice(prompt: str, options: List[str]) -> str:
+        while True:
+            print(f"{prompt} \n  Options: {', '.join(options)}")
+            ans = input("> ").strip()
+            if ans in options:
+                return ans
+            print("Please choose a valid option.")
+
+    def ask_scale(prompt: str, min_v: int = 1, max_v: int = 5) -> int:
+        while True:
+            ans = input(f"{prompt} ({min_v}-{max_v}): ").strip()
+            if ans.isdigit():
+                v = int(ans)
+                if min_v <= v <= max_v:
+                    return v
+            print("Enter a number in range.")
+
+    parser = argparse.ArgumentParser(description="Run Value Elicitation Pilot Study (CLI)")
+    parser.add_argument("--participant", type=str, default=None, help="Participant ID (auto if omitted)")
+    parser.add_argument("--limit", type=int, default=0, help="Limit number of scenarios (0 = default config)")
+    parser.add_argument("--simulate", action="store_true", help="Simulate responses instead of interactive input")
+    parser.add_argument("--outdir", type=str, default=str(Path("experiments") / "results"), help="Output directory")
+    args = parser.parse_args()
+
     study = run_pilot_study()
-    
-    # Generate example session
-    example_session = study.generate_study_session("participant_001")
-    
-    print("\nExample Study Session Structure:")
-    print(f"Session ID: {example_session['session_id']}")
-    print(f"Number of scenarios: {len(example_session['scenarios'])}")
-    
-    if example_session['scenarios']:
-        first_scenario = example_session['scenarios'][0]
-        print(f"\nFirst scenario: {first_scenario['scenario'].prompt}")
-        print(f"Number of response pairs: {len(first_scenario['response_pairs'])}")
-        print(f"Number of questions: {len(first_scenario['questions'])}")
-    
-    # Show instructions
-    print("\nStudy Instructions Preview:")
-    print(example_session['instructions'][:500] + "...")
+
+    # Participant ID
+    participant_id = args.participant or f"participant_{uuid.uuid4().hex[:8]}"
+
+    # Demographics (interactive or simulated)
+    demographics: Dict[str, Any] = {}
+    demo_questions = study._get_demographic_survey()
+    print("\nDemographic Survey:")
+    for q in demo_questions:
+        qtext = q["question"]
+        qtype = q["type"]
+        if args.simulate:
+            # basic simulation
+            if qtype == "multiple_choice":
+                demographics[qtext] = random.choice(q.get("options", ["NA"]))
+            elif qtype == "multiple_select":
+                opts = q.get("options", [])
+                demographics[qtext] = [random.choice(opts)] if opts else []
+            elif qtype == "scale":
+                demographics[qtext] = random.randint(1, 5)
+            else:
+                demographics[qtext] = "simulated"
+        else:
+            if qtype == "multiple_choice":
+                demographics[qtext] = ask_choice(qtext, q.get("options", []))
+            elif qtype == "multiple_select":
+                print(qtext)
+                print(f"Select any (comma-separated): {', '.join(q.get('options', []))}")
+                raw = ask("> ")
+                demographics[qtext] = [s.strip() for s in raw.split(",") if s.strip()]
+            elif qtype == "scale":
+                demographics[qtext] = ask_scale(qtext)
+            else:
+                demographics[qtext] = ask(qtext + " (optional): ")
+
+    # Build session
+    session = study.generate_study_session(participant_id)
+    if args.limit and args.limit > 0:
+        session["scenarios"] = session["scenarios"][: args.limit]
+
+    print("\nStarting scenarios...")
+    for idx, block in enumerate(session["scenarios"], start=1):
+        sc = block["scenario"]
+        print("\n" + "=" * 60)
+        print(f"Scenario {idx}: {sc.prompt}")
+        print(f"Risk: {sc.risk_level}  VAC tolerance: {sc.expected_vac_tolerance}")
+
+        for pair in block["response_pairs"]:
+            print("\n--- Response Pair ---")
+            print("Response A:")
+            print(pair["response_a"]["text"]) 
+            print("\nResponse B:")
+            print(pair["response_b"]["text"]) 
+
+            # Preference
+            if args.simulate:
+                preference = random.choice(["Response A", "Response B", "No preference"]) 
+                confidence = random.randint(1, 5)
+                reasoning = "simulated preference"
+                acc_a = random.randint(1, 5)
+                acc_b = random.randint(1, 5)
+            else:
+                preference = ask_choice("Which response do you prefer?", ["Response A", "Response B", "No preference"]) 
+                confidence = ask_scale("How confident are you?")
+                reasoning = ask("Please explain your reasoning: ")
+                acc_a = ask_scale("Rate acceptability of Response A")
+                acc_b = ask_scale("Rate acceptability of Response B")
+
+            # Store
+            ve = study.collect_response({
+                "participant_id": participant_id,
+                "scenario_id": sc.id,
+                "domain": sc.domain,
+                "response_a": pair["response_a"]["text"],
+                "response_b": pair["response_b"]["text"],
+                "preference": {"Response A": "A", "Response B": "B", "No preference": "No preference"}[preference],
+                "confidence": float(confidence),
+                "reasoning": reasoning,
+                "acceptability_rating": {"response_a": float(acc_a), "response_b": float(acc_b)},
+                "demographic_info": demographics,
+            })
+
+    # Save outputs
+    out_base = Path(args.outdir)
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    save_dir = out_base / f"value-elicitation_{ts}_participant_{participant_id}"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    study.export_study_data(str(save_dir / "results.json"))
+    study.export_csv(str(save_dir / "responses.csv"))
+
+    print("\nStudy complete.")
+    print(f"Saved: {save_dir}")
+    print("\nSummary:")
+    print(study.generate_study_report())

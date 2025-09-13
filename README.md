@@ -50,6 +50,20 @@ evaluator = ValueAlignedConfabulationEvaluator()
 score = evaluator.evaluate_response(prompt, response, context)
 ```
 
+## Running the Value Elicitation Pilot (CLI)
+
+Collect human preferences about when confabulation is acceptable using the interactive CLI:
+
+```powershell
+# From the project root
+python -m experiments.pilot_studies.value_elicitation_study --participant your_id --outdir experiments\results
+
+# Simulated mode for testing (no manual input)
+python -m experiments.pilot_studies.value_elicitation_study --simulate --limit 2 --outdir experiments\results
+```
+
+Outputs are saved under a timestamped folder in `experiments/results/` with both `results.json` (full data and analysis) and `responses.csv` (flat table).
+
 ## Research Phases
 
 ### Phase 1: Foundation (Weeks 1-2)
