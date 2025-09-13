@@ -50,19 +50,23 @@ evaluator = ValueAlignedConfabulationEvaluator()
 score = evaluator.evaluate_response(prompt, response, context)
 ```
 
-## Running the Value Elicitation Pilot (CLI)
+## Web UI (Streamlit) for Value Elicitation
 
-Collect human preferences about when confabulation is acceptable using the interactive CLI:
+Prefer a friendlier interface? Launch the Streamlit app:
 
 ```powershell
-# From the project root
-python -m experiments.pilot_studies.value_elicitation_study --participant your_id --outdir experiments\results
-
-# Simulated mode for testing (no manual input)
-python -m experiments.pilot_studies.value_elicitation_study --simulate --limit 2 --outdir experiments\results
+# From the project root (activate venv first if needed)
+python -m pip install -r requirements.txt
+streamlit run experiments\pilot_studies\streamlit_app.py
 ```
 
-Outputs are saved under a timestamped folder in `experiments/results/` with both `results.json` (full data and analysis) and `responses.csv` (flat table).
+The app collects demographics, shows scenario pairs with styled cards, and saves:
+
+- JSON bundle with analysis
+- JSONL rows (one per recorded choice)
+- CSV table
+
+Files are written to `experiments/results/value-elicitation_streamlit/<DATE>/`.
 
 ## Research Phases
 

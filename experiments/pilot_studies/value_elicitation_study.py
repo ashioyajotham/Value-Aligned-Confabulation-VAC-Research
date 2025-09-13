@@ -38,6 +38,9 @@ class ValueElicitationResponse:
     reasoning: str
     acceptability_rating: Dict[str, float]  # Rating for each response
     demographic_info: Dict[str, Any]
+    # Optional metadata for analysis
+    pair_id: Optional[str] = None
+    comparison_type: Optional[str] = None  # e.g., truthful_vs_beneficial
     timestamp: datetime
 
 
@@ -310,6 +313,8 @@ class ValueElicitationStudy:
             reasoning=participant_response["reasoning"],
             acceptability_rating=participant_response["acceptability_rating"],
             demographic_info=participant_response["demographic_info"],
+            pair_id=participant_response.get("pair_id"),
+            comparison_type=participant_response.get("comparison_type"),
             timestamp=datetime.now()
         )
         
@@ -468,6 +473,8 @@ class ValueElicitationStudy:
             "participant_id",
             "scenario_id",
             "domain",
+            "pair_id",
+            "comparison_type",
             "preference",
             "confidence",
             "acceptability_response_a",
@@ -482,6 +489,8 @@ class ValueElicitationStudy:
                     "participant_id": r.participant_id,
                     "scenario_id": r.scenario_id,
                     "domain": r.domain,
+                    "pair_id": r.pair_id,
+                    "comparison_type": r.comparison_type,
                     "preference": r.preference,
                     "confidence": r.confidence,
                     "acceptability_response_a": r.acceptability_rating.get("response_a"),
@@ -558,128 +567,7 @@ def run_pilot_study() -> ValueElicitationStudy:
 
 
 if __name__ == "__main__":
-    import argparse
-
-    def ask(prompt: str) -> str:
-        return input(prompt).strip()
-
-    def ask_choice(prompt: str, options: List[str]) -> str:
-        while True:
-            print(f"{prompt} \n  Options: {', '.join(options)}")
-            ans = input("> ").strip()
-            if ans in options:
-                return ans
-            print("Please choose a valid option.")
-
-    def ask_scale(prompt: str, min_v: int = 1, max_v: int = 5) -> int:
-        while True:
-            ans = input(f"{prompt} ({min_v}-{max_v}): ").strip()
-            if ans.isdigit():
-                v = int(ans)
-                if min_v <= v <= max_v:
-                    return v
-            print("Enter a number in range.")
-
-    parser = argparse.ArgumentParser(description="Run Value Elicitation Pilot Study (CLI)")
-    parser.add_argument("--participant", type=str, default=None, help="Participant ID (auto if omitted)")
-    parser.add_argument("--limit", type=int, default=0, help="Limit number of scenarios (0 = default config)")
-    parser.add_argument("--simulate", action="store_true", help="Simulate responses instead of interactive input")
-    parser.add_argument("--outdir", type=str, default=str(Path("experiments") / "results"), help="Output directory")
-    args = parser.parse_args()
-
-    study = run_pilot_study()
-
-    # Participant ID
-    participant_id = args.participant or f"participant_{uuid.uuid4().hex[:8]}"
-
-    # Demographics (interactive or simulated)
-    demographics: Dict[str, Any] = {}
-    demo_questions = study._get_demographic_survey()
-    print("\nDemographic Survey:")
-    for q in demo_questions:
-        qtext = q["question"]
-        qtype = q["type"]
-        if args.simulate:
-            # basic simulation
-            if qtype == "multiple_choice":
-                demographics[qtext] = random.choice(q.get("options", ["NA"]))
-            elif qtype == "multiple_select":
-                opts = q.get("options", [])
-                demographics[qtext] = [random.choice(opts)] if opts else []
-            elif qtype == "scale":
-                demographics[qtext] = random.randint(1, 5)
-            else:
-                demographics[qtext] = "simulated"
-        else:
-            if qtype == "multiple_choice":
-                demographics[qtext] = ask_choice(qtext, q.get("options", []))
-            elif qtype == "multiple_select":
-                print(qtext)
-                print(f"Select any (comma-separated): {', '.join(q.get('options', []))}")
-                raw = ask("> ")
-                demographics[qtext] = [s.strip() for s in raw.split(",") if s.strip()]
-            elif qtype == "scale":
-                demographics[qtext] = ask_scale(qtext)
-            else:
-                demographics[qtext] = ask(qtext + " (optional): ")
-
-    # Build session
-    session = study.generate_study_session(participant_id)
-    if args.limit and args.limit > 0:
-        session["scenarios"] = session["scenarios"][: args.limit]
-
-    print("\nStarting scenarios...")
-    for idx, block in enumerate(session["scenarios"], start=1):
-        sc = block["scenario"]
-        print("\n" + "=" * 60)
-        print(f"Scenario {idx}: {sc.prompt}")
-        print(f"Risk: {sc.risk_level}  VAC tolerance: {sc.expected_vac_tolerance}")
-
-        for pair in block["response_pairs"]:
-            print("\n--- Response Pair ---")
-            print("Response A:")
-            print(pair["response_a"]["text"]) 
-            print("\nResponse B:")
-            print(pair["response_b"]["text"]) 
-
-            # Preference
-            if args.simulate:
-                preference = random.choice(["Response A", "Response B", "No preference"]) 
-                confidence = random.randint(1, 5)
-                reasoning = "simulated preference"
-                acc_a = random.randint(1, 5)
-                acc_b = random.randint(1, 5)
-            else:
-                preference = ask_choice("Which response do you prefer?", ["Response A", "Response B", "No preference"]) 
-                confidence = ask_scale("How confident are you?")
-                reasoning = ask("Please explain your reasoning: ")
-                acc_a = ask_scale("Rate acceptability of Response A")
-                acc_b = ask_scale("Rate acceptability of Response B")
-
-            # Store
-            ve = study.collect_response({
-                "participant_id": participant_id,
-                "scenario_id": sc.id,
-                "domain": sc.domain,
-                "response_a": pair["response_a"]["text"],
-                "response_b": pair["response_b"]["text"],
-                "preference": {"Response A": "A", "Response B": "B", "No preference": "No preference"}[preference],
-                "confidence": float(confidence),
-                "reasoning": reasoning,
-                "acceptability_rating": {"response_a": float(acc_a), "response_b": float(acc_b)},
-                "demographic_info": demographics,
-            })
-
-    # Save outputs
-    out_base = Path(args.outdir)
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    save_dir = out_base / f"value-elicitation_{ts}_participant_{participant_id}"
-    save_dir.mkdir(parents=True, exist_ok=True)
-
-    study.export_study_data(str(save_dir / "results.json"))
-    study.export_csv(str(save_dir / "responses.csv"))
-
-    print("\nStudy complete.")
-    print(f"Saved: {save_dir}")
-    print("\nSummary:")
-    print(study.generate_study_report())
+    # The CLI is deprecated. Please use the Streamlit UI instead:
+    #   streamlit run experiments/pilot_studies/streamlit_app.py
+    print("This module is a library for the Streamlit app. CLI has been removed.\n"
+          "Run: streamlit run experiments/pilot_studies/streamlit_app.py")
