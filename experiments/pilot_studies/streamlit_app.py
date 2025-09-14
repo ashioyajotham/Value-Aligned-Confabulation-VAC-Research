@@ -103,14 +103,16 @@ if "ui_step" not in st.session_state:
 # ASCII Banner header with anime aesthetics
 st.markdown(
     f"""
-    <div style='text-align: center; margin-bottom: 2rem;'>
-      <pre style='color: {PRIMARY_COLOR}; font-family: "Courier New", monospace; font-size: 0.6em; line-height: 1.1; margin: 0; font-weight: bold;'>{ASCII_BANNER}</pre>
+    <div style='text-align: center; margin-bottom: 1rem;'>
       <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.2em; font-weight: 600;'>{HERO_TAGLINE}</div>
       <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+# ASCII Banner using st.code() for reliable rendering
+st.code(ASCII_BANNER, language=None)
 
 # Anime mascot welcome (when starting)
 if st.session_state.ui_step == "intro":
