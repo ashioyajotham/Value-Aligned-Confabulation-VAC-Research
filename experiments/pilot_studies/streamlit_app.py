@@ -13,10 +13,45 @@ import uuid
 
 import streamlit as st
 
-# Local imports
-from .value_elicitation_study import ValueElicitationStudy
-from .database import save_session_json, append_jsonl, finalize_csv
-from .config import ASCII_BANNER, APP_TITLE, PRIMARY_COLOR, ACCENT_COLOR, MUTED_TEXT, INTRO_MD, FOOTER_TEXT
+# Local imports with robust fallback for direct script execution
+try:
+    # When run as a package module (preferred)
+    from .value_elicitation_study import ValueElicitationStudy
+    from .database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
+    from .config import (
+        ASCII_BANNER,
+        APP_TITLE,
+        PRIMARY_COLOR,
+        ACCENT_COLOR,
+        MUTED_TEXT,
+        INTRO_MD,
+        FOOTER_TEXT,
+        CONSENT_MD,
+        STUDY_VERSION,
+        STUDY_ID,
+        LOGO_SVG,
+    )
+except ImportError:
+    # When run via: streamlit run experiments/pilot_studies/streamlit_app.py
+    import sys as _sys
+    ROOT = Path(__file__).resolve().parents[2]  # project root
+    if str(ROOT) not in _sys.path:
+        _sys.path.insert(0, str(ROOT))
+    from experiments.pilot_studies.value_elicitation_study import ValueElicitationStudy
+    from experiments.pilot_studies.database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
+    from experiments.pilot_studies.config import (
+        ASCII_BANNER,
+        APP_TITLE,
+        PRIMARY_COLOR,
+        ACCENT_COLOR,
+        MUTED_TEXT,
+        INTRO_MD,
+        FOOTER_TEXT,
+        CONSENT_MD,
+        STUDY_VERSION,
+        STUDY_ID,
+        LOGO_SVG,
+    )
 
 # Basic page config and styles
 st.set_page_config(page_title=APP_TITLE, page_icon="🧪", layout="wide")
@@ -49,8 +84,17 @@ st.markdown(
 )
 
 # Header
-st.markdown(f"<div class='vac-header'>{ASCII_BANNER}</div>", unsafe_allow_html=True)
-st.title(APP_TITLE)
+hdr_left, hdr_right = st.columns([6, 2])
+with hdr_left:
+    st.markdown(f"<div class='vac-header'>{ASCII_BANNER}</div>", unsafe_allow_html=True)
+    # Inline logo under title
+    st.title(APP_TITLE)
+    st.markdown(f"<div style='margin:6px 0 2px 0'>{LOGO_SVG}</div>", unsafe_allow_html=True)
+with hdr_right:
+    st.markdown(
+        f"<div style='text-align:right;color:{MUTED_TEXT}'>Study:<br><span style='display:inline-block;margin-top:4px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:999px;font-size:12px;color:#111827;background:#fff'>{STUDY_ID} • {STUDY_VERSION}</span></div>",
+        unsafe_allow_html=True,
+    )
 st.markdown(f"<div class='vac-subtitle'>{INTRO_MD}</div>", unsafe_allow_html=True)
 
 # Session state
@@ -62,32 +106,99 @@ if "session" not in st.session_state:
     st.session_state.session = None
 if "rows" not in st.session_state:
     st.session_state.rows = []  # type: ignore[assignment]
+if "row_index_by_key" not in st.session_state:
+    st.session_state.row_index_by_key = {}
+if "consent_given" not in st.session_state:
+    st.session_state.consent_given = False
+if "consented_at" not in st.session_state:
+    st.session_state.consented_at = None
+if "total_pairs" not in st.session_state:
+    st.session_state.total_pairs = 0
+if "demo" not in st.session_state:
+    st.session_state.demo = {}
 
-# Participant section
+"""
+Intro/Consent step — hide participant controls until consent is checked.
+Also offer "Resume previous session" by loading latest JSONL rows.
+"""
 with st.container():
-    st.subheader("Participant")
-    col1, col2 = st.columns([2,1])
-    with col1:
-        name_opt = st.text_input("Your name (optional)", placeholder="Jane Doe")
-        anon = st.checkbox("I prefer to remain anonymous", value=False)
-        if anon or not name_opt.strip():
-            if not st.session_state.participant_id:
-                st.session_state.participant_id = f"anon_{uuid.uuid4().hex[:8]}"
-        else:
-            st.session_state.participant_id = name_opt.strip().replace(" ", "_")
+    st.subheader("Consent")
+    st.markdown(CONSENT_MD)
+    consent = st.checkbox("I have read and agree to participate in this study.", value=st.session_state.consent_given)
+    if consent and not st.session_state.consent_given:
+        st.session_state.consent_given = True
+        st.session_state.consented_at = datetime.now().isoformat()
+    if not st.session_state.consent_given:
+        st.info("Please provide consent to proceed.")
 
-    with col2:
-        limit = st.number_input("Scenarios (approx)", min_value=1, max_value=10, value=6)
-        start_btn = st.button("Start Study ✨", use_container_width=True, type="primary")
+    if st.session_state.consent_given:
+        st.subheader("Participant")
+        col1, col2 = st.columns([2,1])
+        with col1:
+            name_opt = st.text_input("Your name (optional)", placeholder="Jane Doe")
+            anon = st.checkbox("I prefer to remain anonymous", value=False)
+            if anon or not name_opt.strip():
+                if not st.session_state.participant_id:
+                    st.session_state.participant_id = f"anon_{uuid.uuid4().hex[:8]}"
+            else:
+                st.session_state.participant_id = name_opt.strip().replace(" ", "_")
 
-    if start_btn and st.session_state.participant_id:
-        st.session_state.session = st.session_state.study.generate_study_session(st.session_state.participant_id)
-        # Optionally trim scenarios
-        st.session_state.session["scenarios"] = st.session_state.session["scenarios"][:limit]
-        st.success("Session started. Scroll down to begin.")
+        with col2:
+            limit = st.number_input("Scenarios (approx)", min_value=1, max_value=10, value=6)
+            start_btn = st.button("Start Study ✨", use_container_width=True, type="primary")
+            resume_btn = st.button("Resume Previous Session ↩️", use_container_width=True)
+
+        # Helper: load latest JSONL for participant
+        def _load_latest_jsonl_rows(pid: str):
+            import json as _json
+            latest = None
+            # Look for latest date folder with this participant's jsonl
+            for day_dir in sorted(BASE_DIR.glob("*"), reverse=True):
+                f = day_dir / f"{pid}.jsonl"
+                if f.exists():
+                    latest = f
+                    break
+            if not latest:
+                return []
+            rows = []
+            with latest.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    try:
+                        rows.append(_json.loads(line))
+                    except Exception:
+                        continue
+            return rows
+
+        if resume_btn and st.session_state.participant_id:
+            prev_rows = _load_latest_jsonl_rows(st.session_state.participant_id)
+            if prev_rows:
+                st.session_state.rows = prev_rows
+                # Rebuild index and totals after we create session (below)
+                st.success(f"Loaded {len(prev_rows)} previous responses for {st.session_state.participant_id}.")
+            else:
+                st.info("No previous session found to resume.")
+
+        if start_btn and st.session_state.participant_id:
+            st.session_state.session = st.session_state.study.generate_study_session(st.session_state.participant_id)
+            # Optionally trim scenarios
+            st.session_state.session["scenarios"] = st.session_state.session["scenarios"][:limit]
+            # Compute total pairs for progress tracking
+            st.session_state.total_pairs = sum(len(block["response_pairs"]) for block in st.session_state.session["scenarios"]) if st.session_state.session else 0
+            # If we had preloaded rows (resume), rebuild row_index_by_key
+            st.session_state.row_index_by_key = {}
+            for i, r in enumerate(st.session_state.rows):
+                k = f"{r.get('scenario_id')}:{r.get('pair_id')}"
+                st.session_state.row_index_by_key[k] = i
+            st.success("Session ready. Scroll down to continue.")
 
 if st.session_state.session:
     st.divider()
+    # Overall progress
+    completed_pairs = len(st.session_state.row_index_by_key)
+    total_pairs = max(1, st.session_state.total_pairs)
+    st.progress(completed_pairs / total_pairs)
+    st.caption(f"Progress: {completed_pairs} / {st.session_state.total_pairs} pairs completed")
+
     st.subheader("Demographics")
     demo_form = st.form("demo_form")
     demo_answers: Dict[str, Any] = {}
@@ -113,7 +224,15 @@ if st.session_state.session:
     # Iterate scenarios and pairs
     for s_idx, block in enumerate(st.session_state.session["scenarios"], start=1):
         sc = block["scenario"]
-        with st.expander(f"Scenario {s_idx}: {sc.prompt}", expanded=False):
+        # Per-scenario progress
+        scenario_total = len(block["response_pairs"])
+        scenario_completed = 0
+        for pair in block["response_pairs"]:
+            key = f"{sc.id}:{pair.get('pair_id')}"
+            if key in st.session_state.row_index_by_key:
+                scenario_completed += 1
+
+        with st.expander(f"Scenario {s_idx}: {sc.prompt}  •  {scenario_completed}/{scenario_total} pairs answered", expanded=False):
             st.markdown(f"Risk level: `{sc.risk_level}` • Expected VAC tolerance: `{sc.expected_vac_tolerance}`")
 
             for pair in block["response_pairs"]:
@@ -137,6 +256,7 @@ if st.session_state.session:
                 acc_b = st.slider("Acceptability of Response B", 1, 5, 3, key=f"accB_{s_idx}_{pair['pair_id']}")
 
                 if st.button("Record Choice", key=f"save_{s_idx}_{pair['pair_id']}"):
+                    pair_key = f"{sc.id}:{pair.get('pair_id')}"
                     row = {
                         "participant_id": st.session_state.participant_id,
                         "scenario_id": sc.id,
@@ -149,9 +269,17 @@ if st.session_state.session:
                         "confidence": float(confidence),
                         "reasoning": reasoning,
                         "acceptability_rating": {"response_a": float(acc_a), "response_b": float(acc_b)},
+                        "study_id": STUDY_ID,
+                        "study_version": STUDY_VERSION,
                         "timestamp": datetime.now().isoformat(),
                     }
-                    st.session_state.rows.append(row)
+                    # De-duplicate by pair key (update existing or append)
+                    if pair_key in st.session_state.row_index_by_key:
+                        idx = st.session_state.row_index_by_key[pair_key]
+                        st.session_state.rows[idx] = row
+                    else:
+                        st.session_state.rows.append(row)
+                        st.session_state.row_index_by_key[pair_key] = len(st.session_state.rows) - 1
                     st.success("Recorded.")
 
     st.divider()
@@ -170,6 +298,12 @@ if st.session_state.session:
             "participant_id": st.session_state.participant_id,
             "demographics": st.session_state.get("demo", {}),
             "n_rows": len(st.session_state.rows),
+            "completed_pairs": len(st.session_state.row_index_by_key),
+            "total_pairs": st.session_state.total_pairs,
+            "study_id": STUDY_ID,
+            "study_version": STUDY_VERSION,
+            "consent": bool(st.session_state.consent_given),
+            "consented_at": st.session_state.consented_at,
             "analysis": study.analyze_responses(),
         }
         json_path = save_session_json(st.session_state.participant_id, bundle)
@@ -177,5 +311,63 @@ if st.session_state.session:
         csv_path = finalize_csv(st.session_state.participant_id, st.session_state.rows)
         st.success(f"Saved JSON: {json_path}\nSaved JSONL: {jsonl_path}\nSaved CSV: {csv_path}")
         st.text_area("Study Report", study.generate_study_report(), height=240)
+
+    st.divider()
+    with st.expander("Admin: Results Dashboard"):
+        st.caption("Aggregates across results saved under experiments/results/value-elicitation_streamlit/")
+        try:
+            # Collect per-participant counts from JSONL files
+            jsonl_files = list(BASE_DIR.glob("*/*.jsonl"))
+            if not jsonl_files:
+                st.info("No results found yet.")
+            else:
+                total_rows = 0
+                per_participant = {}
+                per_domain = {}
+                time_series = {}
+                for f in jsonl_files:
+                    participant_id = f.stem
+                    count = 0
+                    last_ts = ""
+                    with f.open("r", encoding="utf-8") as fh:
+                        for line in fh:
+                            try:
+                                rec = st.session_state.get("_tmpjson", None)
+                                import json as _json
+                                rec = _json.loads(line)
+                            except Exception:
+                                continue
+                            count += 1
+                            total_rows += 1
+                            last_ts = rec.get("timestamp", last_ts)
+                            dom = rec.get("domain")
+                            if dom:
+                                per_domain[dom] = per_domain.get(dom, 0) + 1
+                            # time bucket by date
+                            ts = rec.get("timestamp")
+                            if ts:
+                                day = ts[:10]
+                                time_series[day] = time_series.get(day, 0) + 1
+                    per_participant[participant_id] = {"rows": count, "last": last_ts}
+
+                st.write({"participants": len(per_participant), "total_rows": total_rows})
+                st.markdown("**Per-participant rows**")
+                st.table([
+                    {"participant_id": pid, "rows": meta["rows"], "last": meta["last"]}
+                    for pid, meta in sorted(per_participant.items(), key=lambda x: x[0])
+                ])
+                if per_domain:
+                    st.markdown("**Rows by domain**")
+                    st.bar_chart({"rows": per_domain})
+                if time_series:
+                    st.markdown("**Completions over time**")
+                    # Convert to sorted series for chart
+                    days = sorted(time_series.keys())
+                    data = {"date": days, "rows": [time_series[d] for d in days]}
+                    import pandas as _pd
+                    df = _pd.DataFrame(data).set_index("date")
+                    st.line_chart(df)
+        except Exception as e:
+            st.warning(f"Dashboard error: {e}")
 
 st.markdown(f"<div class='vac-footer'>{FOOTER_TEXT}</div>", unsafe_allow_html=True)

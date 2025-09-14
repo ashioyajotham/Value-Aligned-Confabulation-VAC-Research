@@ -38,10 +38,10 @@ class ValueElicitationResponse:
     reasoning: str
     acceptability_rating: Dict[str, float]  # Rating for each response
     demographic_info: Dict[str, Any]
+    timestamp: datetime
     # Optional metadata for analysis
     pair_id: Optional[str] = None
     comparison_type: Optional[str] = None  # e.g., truthful_vs_beneficial
-    timestamp: datetime
 
 
 class ValueElicitationStudy:
