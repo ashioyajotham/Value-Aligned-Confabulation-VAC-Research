@@ -58,6 +58,8 @@ except ImportError:
         LOGO_SVG,
         HERO_LOGO_SVG,
         HERO_TAGLINE,
+        ADMIN_PASSWORD,
+        ADMIN_USERNAME,
         ANIME_MASCOT,
         ADMIN_PASSWORD,
         ADMIN_USERNAME,
