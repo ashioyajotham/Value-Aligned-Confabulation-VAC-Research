@@ -69,12 +69,14 @@ st.markdown(
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }}
     .vac-header {{
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
         color: {PRIMARY_COLOR};
         white-space: pre;
-        font-size: 12px;
-        line-height: 12px;
-        margin-bottom: 0.5rem;
+        font-size: 11px;           /* fixed px to stabilize */
+        line-height: 12px;          /* exact line height for ASCII rows */
+        letter-spacing: 0;          /* avoid tracking shifts */
+        font-weight: 400;           /* avoid bold width variation */
+        margin-bottom: 0.75rem;
     }}
     .vac-subtitle {{ color: {MUTED_TEXT}; margin-bottom: 1rem; }}
     .vac-card {{
@@ -94,16 +96,16 @@ st.markdown(
 if "ui_step" not in st.session_state:
     st.session_state.ui_step = "intro"  # intro, study, summary
 
-# ASCII Banner header with anime aesthetics
+# ASCII Banner header with anime aesthetics (ASCII-only art)
 st.markdown(
-    f"""
-    <div style='text-align: center; margin-bottom: 2rem;'>
-      <pre style='color: {PRIMARY_COLOR}; font-family: "Courier New", monospace; font-size: 0.6em; line-height: 1.1; margin: 0; font-weight: bold;'>{ASCII_BANNER}</pre>
-      <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.2em; font-weight: 600;'>{HERO_TAGLINE}</div>
-      <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
-    </div>
-    """,
-    unsafe_allow_html=True,
+        f"""
+        <div style='text-align: center; margin-bottom: 2rem;'>
+            <pre class='vac-header'>{ASCII_BANNER}</pre>
+            <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.1em; font-weight: 600;'>{HERO_TAGLINE}</div>
+            <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
 )
 
 # Anime mascot welcome (when starting)
