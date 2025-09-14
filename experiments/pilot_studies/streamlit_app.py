@@ -20,8 +20,6 @@ try:
     from .database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
     from .config import (
         ASCII_BANNER,
-        ASCII_BANNER_ALT,
-        ASCII_BANNER_SIMPLE,
         APP_TITLE,
         PRIMARY_COLOR,
         ACCENT_COLOR,
@@ -46,8 +44,6 @@ except ImportError:
     from experiments.pilot_studies.database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
     from experiments.pilot_studies.config import (
         ASCII_BANNER,
-        ASCII_BANNER_ALT,
-        ASCII_BANNER_SIMPLE,
         APP_TITLE,
         PRIMARY_COLOR,
         ACCENT_COLOR,
@@ -98,16 +94,11 @@ st.markdown(
 if "ui_step" not in st.session_state:
     st.session_state.ui_step = "intro"  # intro, study, summary
 
-# ASCII Banner header with anime aesthetics (with fallback for compatibility)
-try:
-    banner_to_use = ASCII_BANNER_ALT
-except:
-    banner_to_use = ASCII_BANNER_SIMPLE
-
+# ASCII Banner header with anime aesthetics
 st.markdown(
     f"""
     <div style='text-align: center; margin-bottom: 2rem;'>
-      <pre style='color: {PRIMARY_COLOR}; font-family: "Courier New", monospace; font-size: 0.6em; line-height: 1.1; margin: 0; font-weight: bold;'>{banner_to_use}</pre>
+      <pre style='color: {PRIMARY_COLOR}; font-family: "Courier New", monospace; font-size: 0.6em; line-height: 1.1; margin: 0; font-weight: bold;'>{ASCII_BANNER}</pre>
       <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.2em; font-weight: 600;'>{HERO_TAGLINE}</div>
       <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
     </div>
