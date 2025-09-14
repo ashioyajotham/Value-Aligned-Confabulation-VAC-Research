@@ -33,6 +33,8 @@ try:
         HERO_LOGO_SVG,
         HERO_TAGLINE,
         ANIME_MASCOT,
+        ADMIN_PASSWORD,
+        ADMIN_USERNAME,
     )
 except ImportError:
     # When run via: streamlit run experiments/pilot_studies/streamlit_app.py
@@ -57,6 +59,8 @@ except ImportError:
         HERO_LOGO_SVG,
         HERO_TAGLINE,
         ANIME_MASCOT,
+        ADMIN_PASSWORD,
+        ADMIN_USERNAME,
     )
 
 # Basic page config and styles
@@ -69,14 +73,12 @@ st.markdown(
         background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }}
     .vac-header {{
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
         color: {PRIMARY_COLOR};
         white-space: pre;
-        font-size: 11px;           /* fixed px to stabilize */
-        line-height: 12px;          /* exact line height for ASCII rows */
-        letter-spacing: 0;          /* avoid tracking shifts */
-        font-weight: 400;           /* avoid bold width variation */
-        margin-bottom: 0.75rem;
+        font-size: 12px;
+        line-height: 12px;
+        margin-bottom: 0.5rem;
     }}
     .vac-subtitle {{ color: {MUTED_TEXT}; margin-bottom: 1rem; }}
     .vac-card {{
@@ -96,16 +98,16 @@ st.markdown(
 if "ui_step" not in st.session_state:
     st.session_state.ui_step = "intro"  # intro, study, summary
 
-# ASCII Banner header with anime aesthetics (ASCII-only art)
+# ASCII Banner header with anime aesthetics
 st.markdown(
-        f"""
-        <div style='text-align: center; margin-bottom: 2rem;'>
-            <pre class='vac-header'>{ASCII_BANNER}</pre>
-            <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.1em; font-weight: 600;'>{HERO_TAGLINE}</div>
-            <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    f"""
+    <div style='text-align: center; margin-bottom: 2rem;'>
+      <pre style='color: {PRIMARY_COLOR}; font-family: "Courier New", monospace; font-size: 0.6em; line-height: 1.1; margin: 0; font-weight: bold;'>{ASCII_BANNER}</pre>
+      <div style='margin-top: 1rem; color: {ACCENT_COLOR}; font-size: 1.2em; font-weight: 600;'>{HERO_TAGLINE}</div>
+      <div style='margin-top: 0.5rem; color: {MUTED_TEXT}; font-size: 0.9em;'>Study: <span style='font-weight: 600;'>{STUDY_ID}</span> • <span style='font-weight: 600;'>{STUDY_VERSION}</span></div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 # Anime mascot welcome (when starting)
@@ -379,57 +381,85 @@ elif st.session_state.ui_step == "summary":
 # Admin Dashboard (moved to sidebar to keep separate from user flow)
 with st.sidebar:
     st.markdown("### 🔧 Admin Dashboard")
-    if st.checkbox("Show analytics", key="admin_toggle"):
-        st.caption("Results from value-elicitation_streamlit/")
-        try:
-            # Collect per-participant counts from JSONL files
-            jsonl_files = list(BASE_DIR.glob("*/*.jsonl"))
-            if not jsonl_files:
-                st.info("No results found yet.")
+    
+    # Initialize admin authentication state
+    if "admin_authenticated" not in st.session_state:
+        st.session_state.admin_authenticated = False
+    
+    if not st.session_state.admin_authenticated:
+        # Admin login form
+        st.markdown("🔐 **Admin Access Required**")
+        admin_password = st.text_input("Admin Password:", type="password", key="admin_pass_input")
+        
+        if st.button("🔓 Login as Admin", key="admin_login_btn"):
+            if admin_password == ADMIN_PASSWORD:
+                st.session_state.admin_authenticated = True
+                st.success("✅ Admin access granted!")
+                st.rerun()
             else:
-                total_rows = 0
-                per_participant = {}
-                per_domain = {}
-                time_series = {}
-                for f in jsonl_files:
-                    participant_id = f.stem
-                    count = 0
-                    last_ts = ""
-                    with f.open("r", encoding="utf-8") as fh:
-                        for line in fh:
-                            try:
-                                rec = st.session_state.get("_tmpjson", None)
-                                import json as _json
-                                rec = _json.loads(line)
-                            except Exception:
-                                continue
-                            count += 1
-                            total_rows += 1
-                            last_ts = rec.get("timestamp", last_ts)
-                            dom = rec.get("domain")
-                            if dom:
-                                per_domain[dom] = per_domain.get(dom, 0) + 1
-                            # time bucket by date
-                            ts = rec.get("timestamp")
-                            if ts:
-                                day = ts[:10]
-                                time_series[day] = time_series.get(day, 0) + 1
-                    per_participant[participant_id] = {"rows": count, "last": last_ts}
+                st.error("❌ Invalid admin password")
+    
+    else:
+        # Admin is authenticated - show dashboard
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.success("🔓 Admin authenticated")
+        with col2:
+            if st.button("🔒", help="Logout"):
+                st.session_state.admin_authenticated = False
+                st.rerun()
+        
+        if st.checkbox("Show analytics", key="admin_toggle"):
+            st.caption("Results from value-elicitation_streamlit/")
+            try:
+                # Collect per-participant counts from JSONL files
+                jsonl_files = list(BASE_DIR.glob("*/*.jsonl"))
+                if not jsonl_files:
+                    st.info("No results found yet.")
+                else:
+                    total_rows = 0
+                    per_participant = {}
+                    per_domain = {}
+                    time_series = {}
+                    for f in jsonl_files:
+                        participant_id = f.stem
+                        count = 0
+                        last_ts = ""
+                        with f.open("r", encoding="utf-8") as fh:
+                            for line in fh:
+                                try:
+                                    rec = st.session_state.get("_tmpjson", None)
+                                    import json as _json
+                                    rec = _json.loads(line)
+                                except Exception:
+                                    continue
+                                count += 1
+                                total_rows += 1
+                                last_ts = rec.get("timestamp", last_ts)
+                                dom = rec.get("domain")
+                                if dom:
+                                    per_domain[dom] = per_domain.get(dom, 0) + 1
+                                # time bucket by date
+                                ts = rec.get("timestamp")
+                                if ts:
+                                    day = ts[:10]
+                                    time_series[day] = time_series.get(day, 0) + 1
+                        per_participant[participant_id] = {"rows": count, "last": last_ts}
 
-                st.metric("Participants", len(per_participant))
-                st.metric("Total Rows", total_rows)
-                
-                if per_participant:
-                    st.markdown("**Recent Activity**")
-                    recent = sorted(per_participant.items(), key=lambda x: x[1]["last"], reverse=True)[:5]
-                    for pid, meta in recent:
-                        st.text(f"{pid}: {meta['rows']} responses")
-                
-                if per_domain:
-                    st.markdown("**By Domain**")
-                    st.bar_chart({"rows": per_domain})
-        except Exception as e:
-            st.warning(f"Dashboard error: {e}")
+                    st.metric("Participants", len(per_participant))
+                    st.metric("Total Rows", total_rows)
+                    
+                    if per_participant:
+                        st.markdown("**Recent Activity**")
+                        recent = sorted(per_participant.items(), key=lambda x: x[1]["last"], reverse=True)[:5]
+                        for pid, meta in recent:
+                            st.text(f"{pid}: {meta['rows']} responses")
+                    
+                    if per_domain:
+                        st.markdown("**By Domain**")
+                        st.bar_chart({"rows": per_domain})
+            except Exception as e:
+                st.warning(f"Dashboard error: {e}")
 
 st.divider()
 

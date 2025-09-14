@@ -1,14 +1,13 @@
 """Config and style helpers for the Streamlit value elicitation app."""
 
-# ASCII Banner for header (pure ASCII for consistent rendering)
+# ASCII Banner for header
 ASCII_BANNER = r"""
- __     __     _____     ____     _____   ______     ______     ______     _____     ____     _____     _    _ 
- \ \   / /    | ____|   / ___|   | ____| |  ____|   |  _  \   |  ____|   | ____|   / ___|   | ____|   | |  | |
-  \ \ / /     |  _|     \___ \   |  _|   | |__      | |_) |   | |__      |  _|     \___ \   |  _|     | |  | |
-   \ V /      | |___     ___) |  | |___  |  __|     |  _  /   |  __|     | |___     ___) |  | |___    | |__| |
-    \_/       |_____|   |____/   |_____| |_|        |_| \_\   |_|        |_____|   |____/   |_____|    \____/ 
-                                                                                                                
-                    V A L U E  -  A L I G N E D   C O N F A B U L A T I O N   R E S E A R C H                    
+██╗   ██╗ █████╗  ██████╗    ██████╗ ███████╗███████╗███████╗ █████╗ ██████╗  ██████╗██╗  ██╗
+██║   ██║██╔══██╗██╔════╝    ██╔══██╗██╔════╝██╔════╝██╔════╝██╔══██╗██╔══██╗██╔════╝██║  ██║
+██║   ██║███████║██║         ██████╔╝█████╗  ███████╗█████╗  ███████║██████╔╝██║     ███████║
+╚██╗ ██╔╝██╔══██║██║         ██╔══██╗██╔══╝  ╚════██║██╔══╝  ██╔══██║██╔══██╗██║     ██╔══██║
+ ╚████╔╝ ██║  ██║╚██████╗    ██║  ██║███████╗███████║███████╗██║  ██║██║  ██║╚██████╗██║  ██║
+  ╚═══╝  ╚═╝  ╚═╝ ╚═════╝    ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
 """
 
 # Anime-style mascot and aesthetics
@@ -60,6 +59,10 @@ Compare AI responses and tell us which ones you prefer! Your choices help us und
 # Study metadata and consent
 STUDY_ID = "VAC-ELICIT-001"
 STUDY_VERSION = "2025-09-13.v1"
+
+# Admin authentication settings
+ADMIN_PASSWORD = "VAC2025Admin!"  # Change this to your preferred password
+ADMIN_USERNAME = "admin"  # Optional username check
 
 # Simple, friendly consent (no technical jargon)
 CONSENT_MD = """
