@@ -171,6 +171,10 @@ if st.session_state.ui_step == "intro":
                 st.session_state.participant_id = f"anon_{uuid.uuid4().hex[:8]}"
         else:
             st.session_state.participant_id = name_opt.strip().replace(" ", "_")
+        
+        # Ensure participant_id is never empty (cloud environment safety)
+        if not st.session_state.participant_id or st.session_state.participant_id.strip() == "":
+            st.session_state.participant_id = f"user_{uuid.uuid4().hex[:8]}"
 
     with col2:
         limit = st.number_input("🎯 Scenarios (approx)", min_value=1, max_value=10, value=6)
@@ -327,6 +331,19 @@ elif st.session_state.ui_step == "study":
                         "preference": {"A": "A", "B": "B", "No preference": "No preference"}[r["preference"]],
                         "demographic_info": st.session_state.get("demo", {}),
                     })
+                # Ensure participant_id is set before saving
+                if not st.session_state.participant_id:
+                    st.session_state.participant_id = f"fallback_{uuid.uuid4().hex[:8]}"
+                    st.warning("⚠️ Participant ID was missing, generated fallback ID")
+                
+                # Safely get analysis, handle None case
+                try:
+                    analysis = study.analyze_responses()
+                    if analysis is None:
+                        analysis = {"error": "Analysis returned None", "responses_count": len(st.session_state.rows)}
+                except Exception as e:
+                    analysis = {"error": f"Analysis failed: {str(e)}", "responses_count": len(st.session_state.rows)}
+                
                 # Save session bundle
                 bundle = {
                     "participant_id": st.session_state.participant_id,
@@ -338,14 +355,28 @@ elif st.session_state.ui_step == "study":
                     "study_version": STUDY_VERSION,
                     "consent": bool(st.session_state.consent_given),
                     "consented_at": st.session_state.consented_at,
-                    "analysis": study.analyze_responses(),
+                    "analysis": analysis,
                 }
-                json_path = save_session_json(st.session_state.participant_id, bundle)
-                jsonl_path = append_jsonl(st.session_state.participant_id, st.session_state.rows)
-                csv_path = finalize_csv(st.session_state.participant_id, st.session_state.rows)
-                st.session_state.ui_step = "summary"
-                st.success(f"Saved JSON: {json_path}\nSaved JSONL: {jsonl_path}\nSaved CSV: {csv_path}")
-                st.text_area("Study Report", study.generate_study_report(), height=240)
+                
+                # Safe file operations with error handling
+                try:
+                    json_path = save_session_json(st.session_state.participant_id, bundle)
+                    jsonl_path = append_jsonl(st.session_state.participant_id, st.session_state.rows)
+                    csv_path = finalize_csv(st.session_state.participant_id, st.session_state.rows)
+                    st.session_state.ui_step = "summary"
+                    st.success(f"✅ Data saved successfully!\n📁 JSON: {json_path}\n📄 JSONL: {jsonl_path}\n📊 CSV: {csv_path}")
+                except Exception as e:
+                    st.error(f"❌ Error saving data: {str(e)}")
+                    st.info("Your responses are preserved in session. Please try again or contact support.")
+                    # Still move to summary even if saving failed
+                    st.session_state.ui_step = "summary"
+                
+                # Generate study report safely
+                try:
+                    report = study.generate_study_report()
+                    st.text_area("📋 Study Report", report, height=240)
+                except Exception as e:
+                    st.warning(f"📋 Study completed successfully! (Report generation failed: {str(e)})")
 
 elif st.session_state.ui_step == "summary":
     st.subheader("Thank you for participating!")

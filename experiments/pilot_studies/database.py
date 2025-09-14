@@ -39,6 +39,12 @@ def new_session_id() -> str:
 
 
 def save_session_json(participant_id: str, data: Dict[str, Any]) -> Path:
+    # Validate inputs for cloud environment
+    if not participant_id or participant_id.strip() == "":
+        participant_id = f"unknown_{uuid.uuid4().hex[:8]}"
+    if not data:
+        data = {"error": "No data provided", "timestamp": datetime.now().isoformat()}
+    
     outdir = ensure_dir()
     fname = outdir / f"{participant_id}_{new_session_id()}.json"
     with fname.open("w", encoding="utf-8") as f:
@@ -47,6 +53,12 @@ def save_session_json(participant_id: str, data: Dict[str, Any]) -> Path:
 
 
 def append_jsonl(participant_id: str, rows: List[Dict[str, Any]]) -> Path:
+    # Validate inputs for cloud environment
+    if not participant_id or participant_id.strip() == "":
+        participant_id = f"unknown_{uuid.uuid4().hex[:8]}"
+    if not rows:
+        rows = [{"error": "No rows provided", "timestamp": datetime.now().isoformat()}]
+    
     outdir = ensure_dir()
     fname = outdir / f"{participant_id}.jsonl"
     with fname.open("a", encoding="utf-8") as f:
@@ -57,6 +69,13 @@ def append_jsonl(participant_id: str, rows: List[Dict[str, Any]]) -> Path:
 
 def finalize_csv(participant_id: str, rows: List[Dict[str, Any]]) -> Path:
     import csv
+    
+    # Validate inputs for cloud environment
+    if not participant_id or participant_id.strip() == "":
+        participant_id = f"unknown_{uuid.uuid4().hex[:8]}"
+    if not rows:
+        rows = [{"error": "No rows provided", "timestamp": datetime.now().isoformat()}]
+    
     outdir = ensure_dir()
     fname = outdir / f"{participant_id}_{new_session_id()}.csv"
     # Flatten rows minimally
