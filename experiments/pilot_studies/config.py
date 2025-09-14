@@ -1,11 +1,22 @@
 """Config and style helpers for the Streamlit value elicitation app."""
 
-ASCII_BANNER = r"""
- __     ___    _____   _____   _      _   _   _____   _      _   _   ____  
- \ \   / / |  |_   _| |_   _| | |    | \ | | | ____| | |    | \ | | / ___| 
-  \ \ / /| |    | |     | |   | |    |  \| | |  _|   | |    |  \| | \___ \ 
-   \ V / | |___ | |     | |   | |___ | |\  | | |___  | |___ | |\  |  ___) |
-    \_/  |_____| |_|     |_|   |_____||_| \_| |_____| |_____||_| \_| |____/ 
+ASCII_BANNER = ""  # Deprecated
+
+# Modern hero header content
+HERO_TAGLINE = "A research pilot to understand when AI confabulation is acceptable."
+HERO_LOGO_SVG = """
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#4F46E5"/>
+            <stop offset="1" stop-color="#10B981"/>
+        </linearGradient>
+    </defs>
+    <rect x="8" y="8" width="48" height="48" rx="16" fill="url(#grad)" opacity="0.13"/>
+    <circle cx="32" cy="32" r="16" stroke="#4F46E5" stroke-width="3" fill="#fff"/>
+    <path d="M24 32h16M32 24v16" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="32" cy="32" r="4" fill="#4F46E5"/>
+</svg>
 """
 
 PRIMARY_COLOR = "#4F46E5"  # indigo
@@ -33,14 +44,9 @@ STUDY_VERSION = "2025-09-13.v1"
 CONSENT_MD = """
 ### Consent to Participate
 
-This pilot study asks you to compare short AI responses. We collect:
-- Your selections and ratings for each pair
-- Optional demographics you provide
-- A randomly generated anonymous ID (unless you choose to provide your name)
+Thank you for considering this research study. You’ll be shown short scenarios and asked to compare two possible AI responses. Your choices and ratings will help us understand when people find confabulation acceptable in AI.
 
-Data is stored locally on your machine in the `experiments/results/value-elicitation_streamlit/` folder. By proceeding, you agree that your anonymized responses may be used for research on AI value alignment. You may stop at any time.
-
-If you do not agree, please do not start the study.
+Your responses are anonymous and will be used only for research. You may stop at any time. By continuing, you agree to participate.
 """
 
 # Lightweight inline logo (SVG) — optional visual to complement ASCII banner
