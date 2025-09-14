@@ -33,8 +33,6 @@ try:
         HERO_LOGO_SVG,
         HERO_TAGLINE,
         ANIME_MASCOT,
-        ADMIN_PASSWORD,
-        ADMIN_USERNAME,
     )
 except ImportError:
     # When run via: streamlit run experiments/pilot_studies/streamlit_app.py
@@ -59,8 +57,6 @@ except ImportError:
         HERO_LOGO_SVG,
         HERO_TAGLINE,
         ANIME_MASCOT,
-        ADMIN_PASSWORD,
-        ADMIN_USERNAME,
     )
 
 # Basic page config and styles
