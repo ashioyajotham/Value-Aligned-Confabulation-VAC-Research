@@ -60,10 +60,6 @@ Compare AI responses and tell us which ones you prefer! Your choices help us und
 STUDY_ID = "VAC-ELICIT-001"
 STUDY_VERSION = "2025-09-13.v1"
 
-# Admin authentication settings
-ADMIN_PASSWORD = "VAC2025Admin!"  # Change this to your preferred password
-ADMIN_USERNAME = "admin"  # Optional username check
-
 # Simple, friendly consent (no technical jargon)
 CONSENT_MD = """
 ### Ready to Help? 🤝

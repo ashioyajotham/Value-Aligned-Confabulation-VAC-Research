@@ -35,6 +35,7 @@ config.yaml
 .cache/
 # Ignore secrets files
 secrets.json
+.streamlit/
 # Ignore Docker files
 Dockerfile
 docker-compose.yml

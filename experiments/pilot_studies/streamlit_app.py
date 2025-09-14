@@ -58,8 +58,6 @@ except ImportError:
         LOGO_SVG,
         HERO_LOGO_SVG,
         HERO_TAGLINE,
-        ADMIN_PASSWORD,
-        ADMIN_USERNAME,
         ANIME_MASCOT,
         ADMIN_PASSWORD,
         ADMIN_USERNAME,
@@ -396,7 +394,7 @@ with st.sidebar:
         admin_password = st.text_input("Admin Password:", type="password", key="admin_pass_input")
         
         if st.button("🔓 Login as Admin", key="admin_login_btn"):
-            if admin_password == ADMIN_PASSWORD:
+            if admin_password == st.secrets["ADMIN_PASSWORD"]:
                 st.session_state.admin_authenticated = True
                 st.success("✅ Admin access granted!")
                 st.rerun()
