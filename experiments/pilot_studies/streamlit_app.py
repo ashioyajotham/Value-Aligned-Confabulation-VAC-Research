@@ -5,6 +5,7 @@ Run with:
 from __future__ import annotations
 
 import random
+import json
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +19,10 @@ import streamlit as st
 try:
     # When run as a package module (preferred)
     from .value_elicitation_study import ValueElicitationStudy
-    from .database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
+    from .database import (
+        save_session_json, append_jsonl, finalize_csv, BASE_DIR,
+        get_all_data_files, aggregate_all_jsonl_data, create_download_csv, get_data_summary
+    )
     from .config import (
         ASCII_BANNER,
         APP_TITLE,
@@ -42,7 +46,10 @@ except ImportError:
     if str(ROOT) not in _sys.path:
         _sys.path.insert(0, str(ROOT))
     from experiments.pilot_studies.value_elicitation_study import ValueElicitationStudy
-    from experiments.pilot_studies.database import save_session_json, append_jsonl, finalize_csv, BASE_DIR
+    from experiments.pilot_studies.database import (
+        save_session_json, append_jsonl, finalize_csv, BASE_DIR,
+        get_all_data_files, aggregate_all_jsonl_data, create_download_csv, get_data_summary
+    )
     from experiments.pilot_studies.config import (
         ASCII_BANNER,
         APP_TITLE,
@@ -410,53 +417,78 @@ with st.sidebar:
         
         if st.checkbox("Show analytics", key="admin_toggle"):
             st.caption("Results from value-elicitation_streamlit/")
+            
             try:
-                # Collect per-participant counts from JSONL files
-                jsonl_files = list(BASE_DIR.glob("*/*.jsonl"))
-                if not jsonl_files:
+                # Get comprehensive data summary
+                summary = get_data_summary()
+                
+                if summary["total_responses"] == 0:
                     st.info("No results found yet.")
                 else:
-                    total_rows = 0
-                    per_participant = {}
-                    per_domain = {}
-                    time_series = {}
-                    for f in jsonl_files:
-                        participant_id = f.stem
-                        count = 0
-                        last_ts = ""
-                        with f.open("r", encoding="utf-8") as fh:
-                            for line in fh:
-                                try:
-                                    rec = st.session_state.get("_tmpjson", None)
-                                    import json as _json
-                                    rec = _json.loads(line)
-                                except Exception:
-                                    continue
-                                count += 1
-                                total_rows += 1
-                                last_ts = rec.get("timestamp", last_ts)
-                                dom = rec.get("domain")
-                                if dom:
-                                    per_domain[dom] = per_domain.get(dom, 0) + 1
-                                # time bucket by date
-                                ts = rec.get("timestamp")
-                                if ts:
-                                    day = ts[:10]
-                                    time_series[day] = time_series.get(day, 0) + 1
-                        per_participant[participant_id] = {"rows": count, "last": last_ts}
-
-                    st.metric("Participants", len(per_participant))
-                    st.metric("Total Rows", total_rows)
+                    # Display metrics
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Participants", summary["unique_participants"])
+                    with col2:
+                        st.metric("Total Rows", summary["total_responses"])
                     
-                    if per_participant:
+                    # Recent activity
+                    if summary["recent_activity"]:
                         st.markdown("**Recent Activity**")
-                        recent = sorted(per_participant.items(), key=lambda x: x[1]["last"], reverse=True)[:5]
-                        for pid, meta in recent:
-                            st.text(f"{pid}: {meta['rows']} responses")
+                        for activity in summary["recent_activity"][:5]:
+                            st.text(f"{activity['participant']}: {activity['domain']}")
                     
-                    if per_domain:
+                    # Domain breakdown
+                    if summary["domain_counts"]:
                         st.markdown("**By Domain**")
-                        st.bar_chart({"rows": per_domain})
+                        st.bar_chart(summary["domain_counts"])
+                    
+                    # Download section
+                    st.markdown("### 📁 **Export Data**")
+                    
+                    # Get all data for download
+                    all_data = aggregate_all_jsonl_data()
+                    
+                    if all_data:
+                        col1, col2, col3 = st.columns(3)
+                        
+                        # CSV Download
+                        with col1:
+                            csv_data = create_download_csv(all_data)
+                            st.download_button(
+                                label="📊 Download CSV",
+                                data=csv_data,
+                                file_name=f"vac_survey_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                mime="text/csv",
+                                help="Download all responses as CSV file"
+                            )
+                        
+                        # JSON Download
+                        with col2:
+                            json_data = json.dumps(all_data, indent=2, ensure_ascii=False, default=str)
+                            st.download_button(
+                                label="📋 Download JSON",
+                                data=json_data,
+                                file_name=f"vac_survey_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                                mime="application/json",
+                                help="Download all responses as JSON file"
+                            )
+                        
+                        # JSONL Download
+                        with col3:
+                            jsonl_data = "\n".join([json.dumps(row, ensure_ascii=False, default=str) for row in all_data])
+                            st.download_button(
+                                label="📄 Download JSONL",
+                                data=jsonl_data,
+                                file_name=f"vac_survey_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl",
+                                mime="application/jsonl",
+                                help="Download all responses as JSONL file"
+                            )
+                        
+                        st.info(f"💡 Ready to download {len(all_data)} survey responses!")
+                    else:
+                        st.warning("No data available for download.")
+                        
             except Exception as e:
                 st.warning(f"Dashboard error: {e}")
 
