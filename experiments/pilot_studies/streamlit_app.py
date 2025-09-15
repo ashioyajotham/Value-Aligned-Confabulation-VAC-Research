@@ -14,6 +14,7 @@ import uuid
 import streamlit as st
 
 # Local imports with robust fallback for direct script execution
+# Updated: 2025-09-15 - Admin auth moved to secrets for security
 try:
     # When run as a package module (preferred)
     from .value_elicitation_study import ValueElicitationStudy
