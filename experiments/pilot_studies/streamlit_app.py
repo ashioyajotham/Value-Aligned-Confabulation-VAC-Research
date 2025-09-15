@@ -391,7 +391,7 @@ with st.sidebar:
         admin_password = st.text_input("Admin Password:", type="password", key="admin_pass_input")
         
         if st.button("🔓 Login as Admin", key="admin_login_btn"):
-            if admin_password == st.secrets["ADMIN_PASSWORD"]:
+            if admin_password == st.secrets["general"]["ADMIN_PASSWORD"]:
                 st.session_state.admin_authenticated = True
                 st.success("✅ Admin access granted!")
                 st.rerun()
