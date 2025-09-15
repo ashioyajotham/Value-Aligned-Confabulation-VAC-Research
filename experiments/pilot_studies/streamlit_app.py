@@ -217,6 +217,21 @@ if st.session_state.ui_step == "intro":
         st.session_state.session["scenarios"] = st.session_state.session["scenarios"][:limit]
         # Compute total pairs for progress tracking
         st.session_state.total_pairs = sum(len(block["response_pairs"]) for block in st.session_state.session["scenarios"]) if st.session_state.session else 0
+        
+        # Create flat list of all question pairs for sequential navigation
+        st.session_state.all_questions = []
+        for scenario_block in st.session_state.session["scenarios"]:
+            for pair in scenario_block["response_pairs"]:
+                st.session_state.all_questions.append({
+                    "scenario": scenario_block["scenario"],
+                    "pair": pair,
+                    "pair_key": f"{scenario_block['scenario'].id}:{pair.get('pair_id')}"
+                })
+        
+        # Initialize question navigation
+        if "current_question_index" not in st.session_state:
+            st.session_state.current_question_index = 0
+        
         # If we had preloaded rows (resume), rebuild row_index_by_key
         st.session_state.row_index_by_key = {}
         for i, r in enumerate(st.session_state.rows):
@@ -259,67 +274,128 @@ elif st.session_state.ui_step == "study":
             st.progress(completed_pairs / total_pairs)
             st.caption(f"Progress: {completed_pairs} / {st.session_state.total_pairs} pairs completed")
 
-            st.subheader("Scenarios")
-            # Iterate scenarios and pairs
-            for s_idx, block in enumerate(st.session_state.session["scenarios"], start=1):
-                sc = block["scenario"]
-                # Per-scenario progress
-                scenario_total = len(block["response_pairs"])
-                scenario_completed = 0
-                for pair in block["response_pairs"]:
-                    key = f"{sc.id}:{pair.get('pair_id')}"
-                    if key in st.session_state.row_index_by_key:
-                        scenario_completed += 1
-
-                with st.expander(f"Scenario {s_idx}: {sc.prompt}  •  {scenario_completed}/{scenario_total} pairs answered", expanded=False):
-                    st.markdown(f"Risk level: `{sc.risk_level}` • Expected VAC tolerance: `{sc.expected_vac_tolerance}`")
-
-                    for pair in block["response_pairs"]:
-                        left, right = st.columns(2)
-                        with left:
-                            st.markdown("**Response A**")
-                            st.markdown(f"<div class='vac-card pref-a'>{pair['response_a']['text']}</div>", unsafe_allow_html=True)
-                        with right:
-                            st.markdown("**Response B**")
-                            st.markdown(f"<div class='vac-card pref-b'>{pair['response_b']['text']}</div>", unsafe_allow_html=True)
-
-                        pref = st.radio(
-                            "Which response do you prefer?",
-                            ["A", "B", "No preference"],
-                            horizontal=True,
-                            key=f"pref_{s_idx}_{pair['pair_id']}",
-                        )
-                        confidence = st.slider("How confident are you?", 1, 5, 3, key=f"conf_{s_idx}_{pair['pair_id']}")
-                        reasoning = st.text_area("Briefly explain your reasoning", key=f"reas_{s_idx}_{pair['pair_id']}")
-                        acc_a = st.slider("Acceptability of Response A", 1, 5, 3, key=f"accA_{s_idx}_{pair['pair_id']}")
-                        acc_b = st.slider("Acceptability of Response B", 1, 5, 3, key=f"accB_{s_idx}_{pair['pair_id']}")
-
-                        if st.button("Record Choice", key=f"save_{s_idx}_{pair['pair_id']}"):
-                            pair_key = f"{sc.id}:{pair.get('pair_id')}"
-                            row = {
-                                "participant_id": st.session_state.participant_id,
-                                "scenario_id": sc.id,
-                                "domain": sc.domain,
-                                "pair_id": pair.get("pair_id"),
-                                "comparison_type": pair.get("type"),
-                                "response_a": pair["response_a"]["text"],
-                                "response_b": pair["response_b"]["text"],
-                                "preference": pref,
-                                "confidence": float(confidence),
-                                "reasoning": reasoning,
-                                "acceptability_rating": {"response_a": float(acc_a), "response_b": float(acc_b)},
-                                "study_id": STUDY_ID,
-                                "study_version": STUDY_VERSION,
-                                "timestamp": datetime.now().isoformat(),
-                            }
-                            # De-duplicate by pair key (update existing or append)
-                            if pair_key in st.session_state.row_index_by_key:
-                                idx = st.session_state.row_index_by_key[pair_key]
-                                st.session_state.rows[idx] = row
-                            else:
-                                st.session_state.rows.append(row)
-                                st.session_state.row_index_by_key[pair_key] = len(st.session_state.rows) - 1
-                            st.success("Recorded.")
+            # Sequential Question Display
+            if not st.session_state.all_questions:
+                st.error("No questions loaded. Please restart from the intro page.")
+                st.stop()
+            
+            current_idx = st.session_state.current_question_index
+            total_questions = len(st.session_state.all_questions)
+            
+            # Check if study is complete
+            if current_idx >= total_questions:
+                st.success("🎉 **Congratulations! You've completed all questions!**")
+                st.balloons()
+                st.markdown("Click 'Finish & Save Results' below to submit your responses.")
+            else:
+                # Display current question
+                current_q = st.session_state.all_questions[current_idx]
+                scenario = current_q["scenario"]
+                pair = current_q["pair"]
+                pair_key = current_q["pair_key"]
+                
+                # Question header with progress
+                st.markdown(f"### Question {current_idx + 1} of {total_questions}")
+                st.progress((current_idx + 1) / total_questions)
+                
+                # Scenario context
+                st.markdown(f"**📋 Scenario:** {scenario.prompt}")
+                st.caption(f"Domain: {scenario.domain} • Risk: {scenario.risk_level}")
+                
+                # Response comparison
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("**Response A**")
+                    st.markdown(f"<div class='vac-card pref-a'>{pair['response_a']['text']}</div>", unsafe_allow_html=True)
+                with col2:
+                    st.markdown("**Response B**")
+                    st.markdown(f"<div class='vac-card pref-b'>{pair['response_b']['text']}</div>", unsafe_allow_html=True)
+                
+                # Get existing answer if already completed
+                existing_answer = None
+                if pair_key in st.session_state.row_index_by_key:
+                    idx = st.session_state.row_index_by_key[pair_key]
+                    existing_answer = st.session_state.rows[idx]
+                
+                # Answer form
+                with st.form(f"question_{current_idx}", clear_on_submit=False):
+                    pref = st.radio(
+                        "Which response do you prefer?",
+                        ["A", "B", "No preference"],
+                        index=["A", "B", "No preference"].index(existing_answer["preference"]) if existing_answer else 0,
+                        horizontal=True
+                    )
+                    confidence = st.slider(
+                        "How confident are you?", 
+                        1, 5, 
+                        existing_answer["confidence"] if existing_answer else 3
+                    )
+                    reasoning = st.text_area(
+                        "Briefly explain your reasoning",
+                        value=existing_answer["reasoning"] if existing_answer else ""
+                    )
+                    acc_a = st.slider(
+                        "Acceptability of Response A", 
+                        1, 5, 
+                        existing_answer["acceptability_rating"]["response_a"] if existing_answer else 3
+                    )
+                    acc_b = st.slider(
+                        "Acceptability of Response B", 
+                        1, 5, 
+                        existing_answer["acceptability_rating"]["response_b"] if existing_answer else 3
+                    )
+                    
+                    # Navigation buttons
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col1:
+                        prev_btn = st.form_submit_button("← Previous", disabled=(current_idx == 0))
+                    with col2:
+                        save_btn = st.form_submit_button("💾 Save & Continue", type="primary")
+                    with col3:
+                        skip_btn = st.form_submit_button("Skip →", disabled=(current_idx >= total_questions - 1))
+                    
+                    # Handle navigation
+                    if prev_btn and current_idx > 0:
+                        st.session_state.current_question_index -= 1
+                        st.rerun()
+                    
+                    if save_btn:
+                        # Save current answer
+                        row = {
+                            "participant_id": st.session_state.participant_id,
+                            "scenario_id": scenario.id,
+                            "domain": scenario.domain,
+                            "pair_id": pair.get("pair_id"),
+                            "comparison_type": pair.get("type"),
+                            "response_a": pair["response_a"]["text"],
+                            "response_b": pair["response_b"]["text"],
+                            "preference": pref,
+                            "confidence": float(confidence),
+                            "reasoning": reasoning,
+                            "acceptability_rating": {"response_a": float(acc_a), "response_b": float(acc_b)},
+                            "study_id": STUDY_ID,
+                            "study_version": STUDY_VERSION,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                        
+                        # De-duplicate by pair key (update existing or append)
+                        if pair_key in st.session_state.row_index_by_key:
+                            idx = st.session_state.row_index_by_key[pair_key]
+                            st.session_state.rows[idx] = row
+                        else:
+                            st.session_state.rows.append(row)
+                            st.session_state.row_index_by_key[pair_key] = len(st.session_state.rows) - 1
+                        
+                        # Move to next question
+                        if current_idx < total_questions - 1:
+                            st.session_state.current_question_index += 1
+                        
+                        st.success("✅ Answer saved!")
+                        st.rerun()
+                    
+                    if skip_btn and current_idx < total_questions - 1:
+                        st.session_state.current_question_index += 1
+                        st.rerun()
 
             st.divider()
             if st.button("Finish & Save Results 💾", type="primary"):
